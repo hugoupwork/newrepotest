@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────
+// USER & ROLES
+// ──────────────────────────────────────────────
+
+enum UserRole {
+  CLIENT
+  TEAM_MEMBER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  role      UserRole @default(CLIENT)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientBrands   Brand[]       @relation("ClientBrands")
+  assignedBrands Brand[]       @relation("AssignedTeam")
+  decisions      Decision[]
+  activityLog    ActivityLog[]
+}
+
+// ──────────────────────────────────────────────
+// BRAND (central entity per client engagement)
+// ──────────────────────────────────────────────
+
+enum BrandStatus {
+  ONBOARDING
+  RESEARCH
+  ANALYSIS
+  STRATEGY
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model Brand {
+  id        String      @id @default(cuid())
+  name      String
+  status    BrandStatus @default(ONBOARDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  clientId String
+  client   User   @relation("ClientBrands", fields: [clientId], references: [id])
+
+  teamMembers User[] @relation("AssignedTeam")
+
+  onboarding  OnboardingResponse?
+  researchJobs ResearchJob[]
+  scrapedData  ScrapedDataSet[]
+  analysisRuns AnalysisRun[]
+  documents    GeneratedDocument[]
+  adAccounts   AdAccount[]
+  strategies   Strategy[]
+  decisions    Decision[]
+  activityLog  ActivityLog[]
+}
+
+// ──────────────────────────────────────────────
+// ONBOARDING
+// ──────────────────────────────────────────────
+
+model OnboardingResponse {
+  id      String @id @default(cuid())
+  brandId String @unique
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  brandInfo       Json
+  goals           Json
+  targetAudience  Json
+  currentState    Json
+  competitors     Json?
+  additionalNotes String? @db.Text
+
+  completedAt DateTime?
+  currentStep Int       @default(1)
+  isComplete  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// RESEARCH & SCRAPING
+// ──────────────────────────────────────────────
+
+enum DataSource {
+  AMAZON_REVIEWS
+  AMAZON_PRODUCT_COMMENTS
+  REDDIT_POSTS
+  REDDIT_COMMENTS
+  INSTAGRAM_COMMENTS
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ResearchJob {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  source       DataSource
+  status       JobStatus @default(PENDING)
+  apifyRunId   String?
+  config       Json
+  errorMessage String?   @db.Text
+  startedAt    DateTime?
+  completedAt  DateTime?
+  itemCount    Int?
+
+  scrapedDataSet ScrapedDataSet?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScrapedDataSet {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  researchJobId String      @unique
+  researchJob   ResearchJob @relation(fields: [researchJobId], references: [id])
+
+  source DataSource
+  items  ScrapedItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model ScrapedItem {
+  id        String         @id @default(cuid())
+  dataSetId String
+  dataSet   ScrapedDataSet @relation(fields: [dataSetId], references: [id], onDelete: Cascade)
+
+  externalId  String?
+  content     String    @db.Text
+  author      String?
+  authorUrl   String?
+  sourceUrl   String?
+  rating      Float?
+  score       Int?
+  publishedAt DateTime?
+  rawData     Json?
+
+  // Anti-astroturfing
+  suspicionScore Float?  @default(0)
+  suspicionFlags Json?
+  isFlagged      Boolean @default(false)
+
+  // Sentiment
+  sentimentScore Float?
+  sentimentLabel String?
+
+  createdAt DateTime @default(now())
+
+  @@index([dataSetId])
+  @@index([isFlagged])
+}
+
+// ──────────────────────────────────────────────
+// AI ANALYSIS
+// ──────────────────────────────────────────────
+
+enum AnalysisType {
+  CONSUMER_INSIGHTS
+  COMPETITIVE_ANALYSIS
+  SENTIMENT_OVERVIEW
+  AD_PERFORMANCE
+  GROWTH_OPPORTUNITIES
+  FULL_STRATEGY
+}
+
+model AnalysisRun {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  type         AnalysisType
+  status       JobStatus    @default(PENDING)
+  inputSummary Json?
+  results      Json?
+  rawResponse  String?      @db.Text
+  promptUsed   String?      @db.Text
+  tokenCount   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// DOCUMENT GENERATION
+// ──────────────────────────────────────────────
+
+enum DocumentType {
+  MASTER_DOCUMENT
+  GROWTH_GUIDE
+}
+
+model GeneratedDocument {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  type          DocumentType
+  title         String
+  googleDocId   String?
+  googleSheetId String?
+  googleDriveUrl String?
+  version       Int       @default(1)
+  status        JobStatus @default(PENDING)
+  generatedFrom Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────
+// META ADS (Phase 2)
+// ──────────────────────────────────────────────
+
+model AdAccount {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  metaAdAccountId String
+  accessToken     String  @db.Text
+  accountName     String?
+  isActive        Boolean @default(true)
+
+  snapshots AdPerformanceSnapshot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdPerformanceSnapshot {
+  id          String    @id @default(cuid())
+  adAccountId String
+  adAccount   AdAccount @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+
+  dateRange  Json
+  fetchedAt  DateTime @default(now())
+  level      String
+  entityId   String
+  entityName String?
+  metrics    Json
+  isChampion Boolean  @default(false)
+
+  @@index([adAccountId, fetchedAt])
+}
+
+// ──────────────────────────────────────────────
+// STRATEGY & DECISIONS
+// ──────────────────────────────────────────────
+
+enum StrategyStatus {
+  PROPOSED
+  UNDER_REVIEW
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  DEFERRED
+}
+
+enum DecisionAction {
+  APPROVE
+  REJECT
+  MODIFY
+  DEFER
+  ESCALATE
+}
+
+model Strategy {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  title          String
+  description    String         @db.Text
+  category       String
+  source         String
+  priority       Int            @default(0)
+  status         StrategyStatus @default(PROPOSED)
+  aiRationale    String?        @db.Text
+  aiConfidence   Float?
+  supportingData Json?
+
+  decisions Decision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Decision {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  strategyId String?
+  strategy   Strategy? @relation(fields: [strategyId], references: [id])
+
+  madeById String
+  madeBy   User   @relation(fields: [madeById], references: [id])
+
+  action    DecisionAction
+  rationale String? @db.Text
+  notes     String? @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────
+// ACTIVITY LOG
+// ──────────────────────────────────────────────
+
+model ActivityLog {
+  id      String @id @default(cuid())
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  action  String
+  details Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([brandId, createdAt])
+}
