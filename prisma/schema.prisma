@@ -69,6 +69,8 @@ model Brand {
   strategies   Strategy[]
   decisions    Decision[]
   activityLog  ActivityLog[]
+
+  inspirationBoard InspirationBoard?
 }
 
 // ──────────────────────────────────────────────
@@ -105,6 +107,7 @@ enum DataSource {
   REDDIT_POSTS
   REDDIT_COMMENTS
   INSTAGRAM_COMMENTS
+  META_AD_LIBRARY
 }
 
 enum JobStatus {
@@ -130,6 +133,8 @@ model ResearchJob {
   itemCount    Int?
 
   scrapedDataSet ScrapedDataSet?
+
+  inspirationBrands InspirationBrand[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -351,4 +356,157 @@ model ActivityLog {
   createdAt DateTime @default(now())
 
   @@index([brandId, createdAt])
+}
+
+// ──────────────────────────────────────────────
+// AD INSPIRATION LAYERS
+// ──────────────────────────────────────────────
+
+enum InspirationLayerType {
+  DIRECT_COMPETITORS
+  SAME_NICHE
+  SAME_DESIRE_OUTCOME
+  SAME_DEMOGRAPHIC
+  TREND_SPOTTER
+}
+
+enum AdFormat {
+  UGC
+  STUDIO
+  MEME
+  CAROUSEL
+  STATIC_IMAGE
+  VIDEO
+  SLIDESHOW
+  COLLECTION
+  STORIES
+  REELS
+  OTHER
+}
+
+model InspirationBoard {
+  id      String @id @default(cuid())
+  brandId String @unique
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  layers InspirationLayer[]
+  notes  String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InspirationLayer {
+  id      String           @id @default(cuid())
+  boardId String
+  board   InspirationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  type          InspirationLayerType
+  label         String?
+  description   String?  @db.Text
+  desireKeyword String?
+  demographic   String?
+
+  brands InspirationBrand[]
+  trends TrendItem[]
+
+  aiSuggestions Json?
+  status        JobStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardId, type])
+  @@index([boardId])
+}
+
+model InspirationBrand {
+  id      String           @id @default(cuid())
+  layerId String
+  layer   InspirationLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+
+  name             String
+  metaPageId       String?
+  metaPageUrl      String?
+  website          String?
+  estimatedRevenue String?
+  revenueCategory  String?
+  socialFollowing  Int?
+  adSpendEstimate  String?
+  notes            String? @db.Text
+
+  adLibraryScrapeJobId String?
+  adLibraryScrapeJob   ResearchJob? @relation(fields: [adLibraryScrapeJobId], references: [id])
+  lastScrapedAt        DateTime?
+
+  adCreatives AdCreative[]
+
+  isUserAdded Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([layerId])
+}
+
+model AdCreative {
+  id      String           @id @default(cuid())
+  brandId String
+  brand   InspirationBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  metaAdId        String?  @unique
+  adLibraryUrl    String?
+  screenshotUrl   String?
+  videoUrl        String?
+  thumbnailUrl    String?
+  primaryText     String?  @db.Text
+  headline        String?
+  linkDescription String?
+  ctaType         String?
+  landingPageUrl  String?
+
+  adStartDate DateTime?
+  adEndDate   DateTime?
+  isActive    Boolean   @default(true)
+
+  format          AdFormat?
+  hookType        String?
+  ctaStyle        String?
+  emotionalAppeal String?
+
+  aiAnalysis Json?
+  aiScore    Float?
+
+  tags String[]
+
+  rawData Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+}
+
+model TrendItem {
+  id      String           @id @default(cuid())
+  layerId String
+  layer   InspirationLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String? @db.Text
+  sourceUrl   String?
+  sourceName  String?
+  imageUrl    String?
+  category    String?
+
+  relevanceScore   Float?
+  aiAdaptation     String? @db.Text
+  aiRelevanceNotes String? @db.Text
+
+  trendDate  DateTime?
+  isRelevant Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([layerId])
 }

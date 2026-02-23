@@ -18,6 +18,7 @@ import {
   FileText,
   Target,
   BarChart3,
+  Lightbulb,
 } from "lucide-react";
 
 export default async function ClientOverviewPage({
@@ -39,6 +40,16 @@ export default async function ClientOverviewPage({
       analysisRuns: { select: { id: true, status: true } },
       documents: { select: { id: true, type: true } },
       strategies: { select: { id: true, status: true } },
+      inspirationBoard: {
+        include: {
+          layers: {
+            include: {
+              brands: { select: { id: true } },
+              trends: { select: { id: true } },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -79,6 +90,15 @@ export default async function ClientOverviewPage({
       icon: Target,
       status: `${brand.strategies.length} strategies`,
       description: "Recommendations & decisions",
+    },
+    {
+      title: "Inspiration",
+      href: `/clients/${clientId}/inspiration`,
+      icon: Lightbulb,
+      status: brand.inspirationBoard
+        ? `${brand.inspirationBoard.layers.reduce((acc, l) => acc + l.brands.length, 0)} brands`
+        : "Not started",
+      description: "5-layer ad creative inspiration",
     },
     {
       title: "Ads",

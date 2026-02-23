@@ -17,4 +17,6 @@ export const APIFY_ACTORS = {
   REDDIT_POSTS: "trudax/reddit-scraper",
   REDDIT_COMMENTS: "trudax/reddit-scraper",
   INSTAGRAM_COMMENTS: "apify/instagram-comment-scraper",
+  META_AD_LIBRARY: "apify/facebook-ads-scraper",
+  GOOGLE_TRENDS: "emastra/google-trends-scraper",
 } as const;

@@ -13,6 +13,7 @@ import {
   BarChart3,
   Settings,
   ClipboardList,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -64,6 +65,11 @@ function clientDetailNav(clientId: string): NavItem[] {
       title: "Strategy",
       href: `/clients/${clientId}/strategy`,
       icon: Target,
+    },
+    {
+      title: "Inspiration",
+      href: `/clients/${clientId}/inspiration`,
+      icon: Lightbulb,
     },
     {
       title: "Ads",
