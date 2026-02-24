@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Image as ImageIcon } from "lucide-react";
+import { PerformanceTierBadge } from "./performance-tier-badge";
 
 interface AdCreativeCardProps {
   creative: {
@@ -21,6 +22,8 @@ interface AdCreativeCardProps {
     thumbnailUrl?: string | null;
     brandName?: string;
     isActive?: boolean;
+    performanceTier?: string | null;
+    atomCount?: number;
   };
   onClick?: () => void;
 }
@@ -46,11 +49,17 @@ export function AdCreativeCard({ creative, onClick }: AdCreativeCardProps) {
             <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
           </div>
         )}
-        {creative.aiScore != null && (
-          <div className="absolute right-2 top-2 rounded bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
-            {(creative.aiScore * 100).toFixed(0)}%
-          </div>
-        )}
+        <div className="absolute right-2 top-2 flex gap-1">
+          {creative.performanceTier &&
+            creative.performanceTier !== "UNKNOWN" && (
+              <PerformanceTierBadge tier={creative.performanceTier} />
+            )}
+          {creative.aiScore != null && (
+            <div className="rounded bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
+              {(creative.aiScore * 100).toFixed(0)}%
+            </div>
+          )}
+        </div>
       </div>
 
       <CardContent className="p-3">
@@ -90,6 +99,11 @@ export function AdCreativeCard({ creative, onClick }: AdCreativeCardProps) {
           {creative.emotionalAppeal && (
             <Badge variant="outline" className="text-[10px]">
               {creative.emotionalAppeal}
+            </Badge>
+          )}
+          {creative.atomCount != null && creative.atomCount > 0 && (
+            <Badge variant="outline" className="text-[10px]">
+              {creative.atomCount} atoms
             </Badge>
           )}
         </div>

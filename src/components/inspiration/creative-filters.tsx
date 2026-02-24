@@ -6,6 +6,7 @@ import {
   CTA_STYLE_OPTIONS,
   EMOTIONAL_APPEAL_OPTIONS,
 } from "@/config/inspiration-layers";
+import { PERFORMANCE_TIER_OPTIONS } from "@/config/atom-taxonomy";
 
 interface CreativeFiltersProps {
   filters: {
@@ -13,15 +14,18 @@ interface CreativeFiltersProps {
     hookType: string;
     ctaStyle: string;
     emotionalAppeal: string;
+    performanceTier?: string;
   };
   onChange: (filters: {
     format: string;
     hookType: string;
     ctaStyle: string;
     emotionalAppeal: string;
+    performanceTier?: string;
   }) => void;
   totalCount: number;
   filteredCount: number;
+  showPerformanceFilter?: boolean;
 }
 
 export function CreativeFilters({
@@ -29,13 +33,20 @@ export function CreativeFilters({
   onChange,
   totalCount,
   filteredCount,
+  showPerformanceFilter,
 }: CreativeFiltersProps) {
   function handleChange(key: string, value: string) {
     onChange({ ...filters, [key]: value });
   }
 
   function handleClear() {
-    onChange({ format: "", hookType: "", ctaStyle: "", emotionalAppeal: "" });
+    onChange({
+      format: "",
+      hookType: "",
+      ctaStyle: "",
+      emotionalAppeal: "",
+      performanceTier: "",
+    });
   }
 
   const hasFilters = Object.values(filters).some(Boolean);
@@ -93,6 +104,21 @@ export function CreativeFilters({
           </option>
         ))}
       </select>
+
+      {showPerformanceFilter && (
+        <select
+          value={filters.performanceTier ?? ""}
+          onChange={(e) => handleChange("performanceTier", e.target.value)}
+          className="rounded-md border bg-background px-3 py-1.5 text-sm"
+        >
+          <option value="">All Tiers</option>
+          {PERFORMANCE_TIER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
 
       {hasFilters && (
         <button

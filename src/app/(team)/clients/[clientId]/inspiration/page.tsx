@@ -37,7 +37,27 @@ export default async function InspirationHubPage({
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link href={`/clients/${clientId}/inspiration/gallery`}>
-              Gallery View
+              Gallery
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/clients/${clientId}/inspiration/atoms`}>
+              Atoms
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/clients/${clientId}/inspiration/performance`}>
+              Performance
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/clients/${clientId}/inspiration/correlations`}>
+              Correlations
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/clients/${clientId}/inspiration/duplicates`}>
+              Duplicates
             </Link>
           </Button>
         </div>

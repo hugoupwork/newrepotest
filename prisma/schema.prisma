@@ -255,7 +255,8 @@ model AdAccount {
   accountName     String?
   isActive        Boolean @default(true)
 
-  snapshots AdPerformanceSnapshot[]
+  snapshots            AdPerformanceSnapshot[]
+  creativePerformances CreativePerformance[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,6 +393,9 @@ model InspirationBoard {
   layers InspirationLayer[]
   notes  String? @db.Text
 
+  duplicateGroups  DuplicateGroup[]
+  atomAnalysisJobs AtomAnalysisJob[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -480,6 +484,17 @@ model AdCreative {
 
   rawData Json?
 
+  // Atom analysis fields
+  atomAnalysisStatus MediaProcessingStatus?
+  geminiAnalysis     Json?
+  mediaDownloaded    Boolean @default(false)
+
+  // Atom analysis relations
+  mediaAssets                MediaAsset[]
+  atoms                      CreativeAtom[]
+  performance                CreativePerformance?
+  duplicateGroupMemberships  DuplicateGroupMember[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -509,4 +524,208 @@ model TrendItem {
   updatedAt DateTime @updatedAt
 
   @@index([layerId])
+}
+
+// ──────────────────────────────────────────────
+// AD CREATIVE ATOM ANALYSIS
+// ──────────────────────────────────────────────
+
+enum PerformanceTier {
+  WINNER
+  STRONG
+  AVERAGE
+  WEAK
+  NON_SPENDER
+  UNKNOWN
+}
+
+enum AtomCategory {
+  VISUAL_HOOK
+  TEXT_OVERLAY
+  COLOR_PALETTE
+  SCENE_COMPOSITION
+  TALENT_ACTOR
+  EMOTION
+  MUSIC_AUDIO
+  TRANSITION
+  CTA_ELEMENT
+  PRODUCT_PLACEMENT
+  PACING
+  LIGHTING_MOOD
+  TYPOGRAPHY
+  BRANDING_ELEMENT
+  SOCIAL_PROOF_ELEMENT
+  OTHER
+}
+
+enum MediaProcessingStatus {
+  PENDING
+  DOWNLOADING
+  PROCESSING
+  ANALYZED
+  FAILED
+}
+
+enum DuplicateGroupStatus {
+  AUTO_DETECTED
+  CONFIRMED
+  DISMISSED
+}
+
+model MediaAsset {
+  id         String     @id @default(cuid())
+  creativeId String
+  creative   AdCreative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  originalUrl   String
+  storagePath   String
+  storageUrl    String
+  mimeType      String
+  fileSizeBytes Int?
+  width         Int?
+  height        Int?
+  durationMs    Int?
+  perceptualHash String?
+
+  status       MediaProcessingStatus @default(PENDING)
+  errorMessage String?               @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creativeId])
+  @@index([perceptualHash])
+}
+
+model CreativeAtom {
+  id         String     @id @default(cuid())
+  creativeId String
+  creative   AdCreative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  category       AtomCategory
+  name           String
+  description    String       @db.Text
+  confidence     Float
+  timestampStart Int?
+  timestampEnd   Int?
+  boundingBox    Json?
+  attributes     Json
+  thumbnailUrl   String?
+
+  correlations AtomPerformanceCorrelation[]
+
+  createdAt DateTime @default(now())
+
+  @@index([creativeId])
+  @@index([category])
+  @@index([name])
+}
+
+model CreativePerformance {
+  id         String     @id @default(cuid())
+  creativeId String     @unique
+  creative   AdCreative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  metaAdAccountId String?
+  adAccount       AdAccount? @relation(fields: [metaAdAccountId], references: [id])
+  isManualEntry   Boolean    @default(false)
+
+  spend          Float?
+  impressions    Int?
+  clicks         Int?
+  ctr            Float?
+  cpc            Float?
+  cpm            Float?
+  conversions    Int?
+  conversionRate Float?
+  roas           Float?
+  revenue        Float?
+
+  performanceTier PerformanceTier @default(UNKNOWN)
+
+  dateRangeStart DateTime?
+  dateRangeEnd   DateTime?
+
+  rawMetrics Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([performanceTier])
+}
+
+model DuplicateGroup {
+  id      String           @id @default(cuid())
+  boardId String
+  board   InspirationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  name    String?
+  status  DuplicateGroupStatus @default(AUTO_DETECTED)
+
+  members DuplicateGroupMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+}
+
+model DuplicateGroupMember {
+  id      String         @id @default(cuid())
+  groupId String
+  group   DuplicateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  creativeId      String
+  creative        AdCreative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  similarityScore Float
+  isPrimary       Boolean    @default(false)
+
+  @@unique([groupId, creativeId])
+  @@index([creativeId])
+}
+
+model AtomPerformanceCorrelation {
+  id      String @id @default(cuid())
+  boardId String
+
+  atomCategory AtomCategory
+  atomName     String
+
+  atomId String?
+  atom   CreativeAtom? @relation(fields: [atomId], references: [id])
+
+  winnerCount      Int   @default(0)
+  nonSpenderCount  Int   @default(0)
+  totalOccurrences Int   @default(0)
+  avgPerformanceScore Float?
+  correlationStrength Float?
+
+  insight    String? @db.Text
+  sampleSize Int     @default(0)
+
+  computedAt DateTime @default(now())
+
+  @@index([boardId, atomCategory])
+  @@index([correlationStrength])
+}
+
+model AtomAnalysisJob {
+  id      String           @id @default(cuid())
+  boardId String
+  board   InspirationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  status         JobStatus @default(PENDING)
+  totalItems     Int       @default(0)
+  processedItems Int       @default(0)
+  failedItems    Int       @default(0)
+  errorMessage   String?   @db.Text
+
+  creativeIds String[]
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([boardId])
 }
