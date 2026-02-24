@@ -46,7 +46,7 @@ export async function manuallySetPerformance(
 
 export async function importPerformanceFromMeta(
   adAccountId: string,
-  _dateRange: { start: Date; end: Date }
+  _dateRange: { start: Date; end: Date } // eslint-disable-line @typescript-eslint/no-unused-vars
 ) {
   // Placeholder for Meta API integration
   // In production, this would call the Meta Marketing API

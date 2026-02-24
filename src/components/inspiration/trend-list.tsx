@@ -27,7 +27,7 @@ interface TrendListProps {
   clientId: string;
 }
 
-export function TrendList({ layerId, trends: initialTrends, clientId }: TrendListProps) {
+export function TrendList({ layerId, trends: initialTrends }: TrendListProps) {
   const [trends, setTrends] = useState(initialTrends);
   const [showAdd, setShowAdd] = useState(false);
   const [discovering, setDiscovering] = useState(false);

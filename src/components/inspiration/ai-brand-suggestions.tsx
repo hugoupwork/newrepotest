@@ -26,7 +26,7 @@ interface AiBrandSuggestionsProps {
   layerType: string;
 }
 
-export function AiBrandSuggestions({ layerId, layerType }: AiBrandSuggestionsProps) {
+export function AiBrandSuggestions({ layerId }: AiBrandSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<BrandSuggestion[]>([]);
   const [insight, setInsight] = useState("");
   const [loading, setLoading] = useState(false);

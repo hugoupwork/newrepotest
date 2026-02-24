@@ -80,6 +80,7 @@ export function DuplicatesDashboard({
 
   const pending = groups.filter((g) => g.status === "AUTO_DETECTED");
   const confirmed = groups.filter((g) => g.status === "CONFIRMED");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const dismissed = groups.filter((g) => g.status === "DISMISSED");
 
   return (

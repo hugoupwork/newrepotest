@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { analyzeWithClaude } from "@/lib/claude";
 import { CORRELATION_INSIGHT_PROMPT } from "@/config/atom-prompts";
 import type { CorrelationInsightReport } from "@/types/atoms";
-import type { AtomCategory, Prisma } from "@/generated/prisma/client";
+import type { AtomCategory } from "@/generated/prisma/client";
 
 export async function correlateAtomsWithPerformance(boardId: string) {
   // Get all creatives with both atoms and performance data

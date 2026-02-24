@@ -81,9 +81,11 @@ export async function POST(
     lines.push("");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const content = lines.join("\n");
 
   try {
+    // TODO: Use content to populate the Google Doc body
     const doc = await createGoogleDoc(
       `Ad Inspiration — ${board.brand.name}`
     );
@@ -106,7 +108,7 @@ export async function POST(
     });
 
     return NextResponse.json({ docId: doc.docId, url: doc.url });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to create Google Doc. Check API credentials." },
       { status: 500 }
